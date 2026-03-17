@@ -9,7 +9,28 @@ import { analyzeSalesFile, analyzeSalesText } from './services/geminiService';
 import { AnalysisResult, AppStatus, UserPersona } from './types';
 
 type MainTab = 'PRE_MEETING' | 'SALES_ANALYSIS' | 'AI_COACH';
+const ALLOWED_USERS = ['proton@gmail.com']; // 본인 및 결제자 이메일 추가
 
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const [email, setEmail] = React.useState<string | null>(localStorage.getItem('userEmail'));
+  React.useEffect(() => {
+    if (!email) {
+      const input = prompt("긱어스 가입 이메일을 입력해주세요:");
+      if (input) {
+        localStorage.setItem('userEmail', input.trim().toLowerCase());
+        setEmail(input.trim().toLowerCase());
+      }
+    }
+  }, [email]);
+  if (email && ALLOWED_USERS.map(u => u.toLowerCase()).includes(email)) return <>{children}</>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', textAlign: 'center', fontFamily: 'sans-serif' }}>
+      <h1>🔐 접근 권한이 없습니다.</h1>
+      <p>결제하신 이메일을 입력해주세요. 승인 대기 중일 수 있습니다.</p>
+      <button onClick={() => { localStorage.removeItem('userEmail'); window.location.reload(); }}>다시 입력하기</button>
+    </div>
+  );
+}
 const ANALYSIS_STEPS = [
   "데이터 로드 및 무결성 검사 중...",
   "닐 래컴의 SPIN 프레임워크 엔진 가동...",
@@ -109,6 +130,7 @@ function App() {
   };
 
   return (
+    <AuthGate>
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans">
       <header className="sticky top-0 z-[60] w-full border-b border-white/5 bg-[#020617]/90 backdrop-blur-xl px-4 sm:px-12 h-16 sm:h-20 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => { setStatus(AppStatus.IDLE); setResult(null); }}>
@@ -268,6 +290,7 @@ function App() {
         initialData={persona}
       />
     </div>
+ </AuthGate>
   );
 }
 
