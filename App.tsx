@@ -14,7 +14,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // ProTon님의 관리용 구글 시트 ID
     const SHEET_ID = '130AsLYhQu0ZU6e8LY_28arUHTg5WUODHQg3GlR_3agM';
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
@@ -84,7 +83,7 @@ function App() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [persona, setPersona] = useState<UserPersona>({ name: '', background: '', goal: '', isActive: false });
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
-  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('merciless'); // 기본 독설 모드
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('softened');
   const [lastAction, setLastAction] = useState<(() => Promise<AnalysisResult>) | null>(null);
 
   useEffect(() => {
@@ -118,12 +117,19 @@ function App() {
       setStatus(AppStatus.SUCCESS); 
     } catch (err: any) {
       const msg = String(err.message || err);
+      // 503 (High Demand) 처리 로직
+      const is503 = msg.includes("503") || msg.toLowerCase().includes("high demand") || msg.toLowerCase().includes("unavailable");
       const isQuota = msg.includes("429") || msg.toLowerCase().includes("quota");
-      setIsServerBusy(isQuota);
-      setErrorMsg(isQuota ? "API 할당량 초과 (잠시 후 다시 시도)" : (err.message || '분석 오류 발생'));
+      
+      setIsServerBusy(isQuota || is503);
+      setErrorMsg(is503 
+        ? "현재 AI 서버 이용자가 몰려 지연되고 있습니다. 잠시 후 '다시 시도' 버튼을 눌러주세요." 
+        : (isQuota ? "API 할당량 초과 (약 1분 뒤 다시 시도)" : (err.message || '분석 오류 발생')));
       setStatus(AppStatus.ERROR);
     }
   };
+
+  const handleRetry = () => lastAction ? processAnalysis(lastAction) : setStatus(AppStatus.IDLE);
 
   return (
     <AuthGate>
@@ -139,9 +145,9 @@ function App() {
              </div>
           </div>
           <div className="flex items-center gap-4">
-              <div className="flex items-center bg-slate-900/80 rounded-full p-1 border border-white/5">
-                  <button onClick={() => setFeedbackMode('softened')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${feedbackMode === 'softened' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}>Soft Advice</button>
-                  <button onClick={() => setFeedbackMode('merciless')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${feedbackMode === 'merciless' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500'}`}>Hard-hitting</button>
+              <div className="flex items-center bg-slate-900/80 rounded-full p-1 border border-white/5 shadow-inner">
+                  <button onClick={() => setFeedbackMode('softened')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${feedbackMode === 'softened' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Soft Advice</button>
+                  <button onClick={() => setFeedbackMode('merciless')} className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${feedbackMode === 'merciless' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Hard-hitting</button>
               </div>
           </div>
         </header>
@@ -161,6 +167,7 @@ function App() {
                           ))}
                       </nav>
 
+                      {/* --- [이미지 2번] 고화질 페르소나 버튼 디자인 --- */}
                       <div className="lg:absolute lg:right-0 flex flex-col items-center">
                           <button onClick={() => setIsPersonaModalOpen(true)} className="group relative flex flex-col items-center transition-all duration-500 hover:scale-110 active:scale-95">
                               <div className="absolute inset-0 bg-purple-600/30 blur-[25px] rounded-full scale-110 opacity-60 group-hover:opacity-100 transition-opacity"></div>
@@ -193,19 +200,28 @@ function App() {
           )}
 
           {status === AppStatus.ANALYZING && (
-            <div className="py-20 flex flex-col items-center text-center">
-              <div className={`w-24 h-24 border-4 rounded-full animate-spin mb-8 ${feedbackMode === 'merciless' ? 'border-rose-500/10 border-t-rose-500' : 'border-indigo-500/10 border-t-indigo-500'}`}></div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">{feedbackMode === 'merciless' ? '냉혹한 심층 분석 중' : '심층 분석 엔진 가동 중'}</h2>
-              <p className="text-indigo-400 font-bold">{ANALYSIS_STEPS[currentStepIdx]}</p>
+            <div className="py-20 flex flex-col items-center text-center max-w-2xl mx-auto px-4">
+              <div className={`w-24 h-24 border-4 rounded-full animate-spin mb-8 ${feedbackMode === 'merciless' ? 'border-rose-500/10 border-t-rose-500 shadow-[0_0_40px_rgba(244,63,94,0.2)]' : 'border-indigo-500/10 border-t-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}></div>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">{feedbackMode === 'merciless' ? '냉혹한 심층 분석 엔진 가동 중' : '심층 분석 엔진 가동 중'}</h2>
+              <p className={`${feedbackMode === 'merciless' ? 'text-rose-400' : 'text-indigo-400'} font-bold transition-all duration-500 animate-pulse`}>{ANALYSIS_STEPS[currentStepIdx]}</p>
             </div>
           )}
 
           {status === AppStatus.SUCCESS && result && <AnalysisView result={result} onReset={() => setStatus(AppStatus.IDLE)} mode={feedbackMode} />}
+          
           {status === AppStatus.ERROR && (
-            <div className="py-20 text-center">
-              <h2 className="text-white mb-6 font-black uppercase tracking-tight">분석에 실패했습니다</h2>
-              <div className="bg-slate-900/60 p-6 rounded-2xl border border-white/5 mb-10"><p className="text-slate-300 text-sm">{errorMsg}</p></div>
-              <button onClick={handleRetry} className="w-full max-w-xs py-4 bg-indigo-600 rounded-xl font-black">다시 시도</button>
+            <div className="py-20 text-center animate-fade-in max-w-md mx-auto">
+               <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
+                  <svg className="w-10 h-10 text-amber-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+               </div>
+               <h2 className="text-2xl font-black text-white mb-4 tracking-tight">분석에 지연이 발생했습니다</h2>
+               <div className="bg-slate-900/60 p-6 rounded-2xl border border-white/5 mb-10">
+                  <p className="text-slate-300 text-sm leading-relaxed">{errorMsg}</p>
+               </div>
+               <div className="flex flex-col gap-3">
+                  <button onClick={handleRetry} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">다시 시도</button>
+                  <button onClick={() => setStatus(AppStatus.IDLE)} className="w-full py-4 bg-slate-800 text-slate-400 rounded-xl font-bold border border-white/5 hover:text-white transition-all">메인으로 돌아가기</button>
+               </div>
             </div>
           )}
         </main>
