@@ -128,7 +128,6 @@ function App() {
   return (
     <AuthGate>
       <div className="min-h-screen bg-[#020617] text-slate-200 font-sans">
-        {/* 헤더 섹션 */}
         <header className="sticky top-0 z-[60] w-full border-b border-white/5 bg-[#020617]/90 backdrop-blur-xl px-4 sm:px-12 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => { setStatus(AppStatus.IDLE); setResult(null); }}>
              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
@@ -162,7 +161,6 @@ function App() {
                           ))}
                       </nav>
 
-                      {/* --- [디자인 복구] 고화질 페르소나 버튼 --- */}
                       <div className="lg:absolute lg:right-0 flex flex-col items-center">
                           <button onClick={() => setIsPersonaModalOpen(true)} className="group relative flex flex-col items-center transition-all duration-500 hover:scale-110 active:scale-95">
                               <div className="absolute inset-0 bg-purple-600/30 blur-[25px] rounded-full scale-110 opacity-60 group-hover:opacity-100 transition-opacity"></div>
