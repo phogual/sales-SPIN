@@ -8,9 +8,6 @@ interface AnalysisViewProps {
   mode?: FeedbackMode;
 }
 
-/**
- * 텍스트 길이에 따라 폰트 크기를 유동적으로 조절하는 헬퍼 함수
- */
 const getDynamicFontSize = (text: string = '', baseSize: number, minSize: number, maxLength: number) => {
   const len = text ? text.length : 0;
   if (len === 0) return `${baseSize}px`;
@@ -20,9 +17,6 @@ const getDynamicFontSize = (text: string = '', baseSize: number, minSize: number
   return `${baseSize * ratio}px`;
 };
 
-/**
- * 점수 포맷팅 (1~10점 사이면 100점 만점으로 변환)
- */
 const formatScore = (score: any): number => {
     const num = Number(score);
     if (isNaN(num)) return 0;
@@ -30,14 +24,8 @@ const formatScore = (score: any): number => {
     return num;
 };
 
-/**
- * 태그 정보를 제거하는 헬퍼
- */
 const stripTags = (text: string) => text.replace(/\s*\([^)]+\)$/, '').trim();
 
-/**
- * [컴포넌트] SPIN 질문 리스트 섹션 (눈 보호를 위해 항시 다크 테마 유지)
- */
 const QuestionList: React.FC<{ title: string; questions: { original: string; betterVersion: string }[]; analysis: string; color: string; label: string; mode?: FeedbackMode }> = ({ title, questions, analysis, color, label, mode }) => {
     const finalColor = color;
     const dotColor = color.replace('text-', 'bg-');
@@ -74,9 +62,6 @@ const QuestionList: React.FC<{ title: string; questions: { original: string; bet
     );
 };
 
-/**
- * [컴포넌트] SPIN 질문 통합 분석 페이지 레이아웃
- */
 const QuestioningAnalysisPage: React.FC<{ 
     title: string; 
     catTitle: string; 
@@ -160,56 +145,67 @@ const QuestioningAnalysisPage: React.FC<{
 };
 
 /**
- * [수정] 최종 피드백 페이지 컴포넌트
- * 1번 사진의 차분한 다크 블루 테마를 하드 버전에서도 그대로 적용했습니다.
+ * [수정] 최종 피드백 페이지 (Page 8)
+ * 이미지 3번 스타일(image_b8e808.png)을 하드 모드에서 구현했습니다.
  */
 const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]; mode?: FeedbackMode }> = ({ mistakes, approaches, mode }) => {
-    // [ CRITICAL FIX ]: 하드 모드여도 눈 보호를 위해 붉은색 강렬함을 제거합니다.
-    const finalAccentColor = 'text-indigo-400';
-    const finalItemBg = 'bg-white/5';
-    const finalItemBorder = 'border-white/5';
-    
-    // 비평 텍스트는 냉혹함을 유지하되, 색상은 차분하게 가져갑니다.
-    const critLabel = mode === 'merciless' ? '냉혹한 진단 및 조언 (Merciless Critique)' : '잘못된 점 및 조언 (Critique & Advice)';
-    const mistTitle = mode === 'merciless' ? '치명적 패착 (CRITICAL MISTAKES)' : '핵심 개선 과제 (CORE IMPROVEMENTS)';
-    const footerText = mode === 'merciless' ? '“피드백은 아프지만, 성장은 그 고통의 끝에서 시작됩니다.”' : '“건설적인 피드백은 성장의 가장 빠른 지름길입니다.”';
+    const isHardMode = mode === 'merciless';
 
     return (
-        <div className="flex flex-col gap-8 h-full relative">
+        <div className="flex flex-col gap-6 h-full relative">
+            {/* Header Area */}
             <div className="flex justify-between items-start">
-                <h2 className="text-[42px] font-black text-white leading-none tracking-tighter uppercase">Strategic <span className="text-indigo-500">Feedback</span></h2>
-                <div className="text-right pt-1">
-                    <span className="text-[11px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1 block">전문가 진단 및 조언</span>
-                    <div className="bg-indigo-600/10 px-8 py-2.5 rounded-full border border-indigo-500/20 text-[11px] font-black text-indigo-400 uppercase tracking-widest italic">CORE IMPROVEMENT REPORT</div>
+                <h2 className={`text-[42px] font-black italic tracking-tighter uppercase leading-none ${isHardMode ? 'text-rose-600 drop-shadow-[0_0_10px_rgba(225,29,72,0.4)]' : 'text-indigo-500'}`}>
+                    {isHardMode ? 'MERCILESS FEEDBACK' : 'STRATEGIC FEEDBACK'}
+                </h2>
+                <div className="text-right flex flex-col items-end">
+                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">독설적 통찰</span>
+                    <div className="bg-rose-950/30 px-6 py-2 rounded-full border border-rose-500/30 text-[10px] font-black text-rose-500 uppercase tracking-widest italic shadow-lg">
+                        BONE-HITTING ADVICE
+                    </div>
                 </div>
             </div>
 
-            {/* Critique Label Block */}
-            <div className="bg-white/5 border border-white/5 p-4 rounded-[25px]">
-                <div className="flex items-center gap-2.5 mb-2">
-                    <span className={`text-[11px] font-black ${finalAccentColor} uppercase tracking-widest`}>{critLabel}</span>
-                </div>
-                <p className="text-slate-200 text-[14px] leading-relaxed font-medium italic">당신의 세일즈 의지는 죄가 없습니다. 하지만 상담 방식과 시스템은 교체 대상입니다. 아래 패착을 직시하십시오.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 flex-1 overflow-hidden">
+            {/* Content Sections */}
+            <div className="flex flex-col gap-10 flex-1 mt-4">
+                {/* Critical Mistakes Section */}
                 <div className="flex flex-col gap-4">
-                    <h3 className={`text-[15px] font-black uppercase tracking-[0.4em] border-l-4 border-indigo-600 pl-4 ${finalAccentColor}`}>{mistTitle}</h3>
-                    <div className="grid grid-cols-1 gap-3.5 custom-scrollbar overflow-y-auto flex-1">
+                    <div className="flex items-center gap-4">
+                        <div className="w-1.5 h-6 bg-rose-600"></div>
+                        <h3 className="text-[16px] font-black text-slate-400 uppercase tracking-[0.3em]">치명적 패착 (CRITICAL MISTAKES)</h3>
+                    </div>
+                    <div className="flex flex-col gap-3">
                         {(mistakes || []).slice(0, 3).map((m, i) => (
-                            <div key={i} className={`${finalItemBg} p-5 rounded-2xl border ${finalItemBorder} flex items-start gap-4 transition-colors hover:bg-white/10 shrink-0`}>
-                                <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
-                                    <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </div>
-                                <p className="text-slate-100 font-bold italic text-lg leading-snug">{m}</p>
+                            <div key={i} className="bg-rose-950/10 p-5 rounded-2xl border border-rose-500/10 flex items-start gap-6 transition-all hover:bg-rose-950/20">
+                                <span className="text-rose-600 font-black text-2xl italic shrink-0 leading-none">{i+1}</span>
+                                <p className="text-slate-100 font-bold italic text-[18px] leading-snug">{m}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Upgrade Path Section */}
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-1.5 h-6 bg-emerald-600"></div>
+                        <h3 className="text-[16px] font-black text-slate-400 uppercase tracking-[0.3em]">업그레이드 솔루션 (UPGRADE PATH)</h3>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        {(approaches || []).slice(0, 2).map((a, i) => (
+                            <div key={i} className="bg-emerald-950/5 p-5 rounded-2xl border border-emerald-500/10 flex items-start gap-6 transition-all hover:bg-emerald-950/10">
+                                <span className="text-emerald-500 font-black text-2xl italic shrink-0 leading-none">{i+1}</span>
+                                <p className="text-slate-100 font-bold italic text-[18px] leading-snug">{a}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            <div className="mt-auto bg-indigo-600 p-8 rounded-[35px] shadow-2xl">
-                <p className="text-white font-black text-center text-[22px] tracking-tight uppercase italic leading-tight drop-shadow-md">{footerText}</p>
+            {/* Bottom Slogan Bar (Image 3 Style) */}
+            <div className="mt-auto bg-rose-600 py-6 px-10 rounded-full shadow-[0_15px_35px_rgba(225,29,72,0.3)] border border-rose-500/20">
+                <p className="text-white font-black text-center text-[20px] tracking-tight uppercase italic leading-tight">
+                    “피드백은 아프지만, 성장은 그 고통의 끝에서 시작됩니다.”
+                </p>
             </div>
         </div>
     );
@@ -220,9 +216,8 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
   const [pdfProgress, setPdfProgress] = useState(0);
   const [scale, setScale] = useState(1);
   const [editableName, setEditableName] = useState(result?.contactInfo?.name || '분석 대상자');
-  const TOTAL_PAGES = 8; // 완벽 복구된 페이지 수
+  const TOTAL_PAGES = 8; 
 
-  // 페이지 Refs
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -257,17 +252,10 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
     } catch (e) { console.error(e); } finally { setIsPdfGenerating(false); setPdfProgress(0); }
   };
 
-  /**
-   * [래퍼] 페이지 레이아웃 및 하드 모드 개선
-   * 하드 모드여도 차분한 다크 테마를 유지하여 1번 사진 느낌을 냅니다.
-   */
   const PageWrapper = ({ children, index }: React.PropsWithChildren<{ index: number }>) => {
     const isHardMode = mode === 'merciless';
     const isLastPage = index === TOTAL_PAGES - 1;
-    
-    // [ CRITICAL FIX ]: 하드 모드여도 배경을 붉게 만들지 않습니다. 다크 테마 고정.
     const baseBg = 'bg-[#0b0e14]';
-    const borderStyle = isHardMode && isLastPage ? '10px solid #6366f130' : 'none';
     
     return (
       <div className="flex justify-center w-full mb-10" style={{ height: `${800 * scale}px` }}>
@@ -275,24 +263,17 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
           id={`pdf-page-${index}`}
           ref={el => pageRefs.current[index] = el}
           className={`${baseBg} text-white overflow-hidden shadow-2xl relative flex flex-col origin-top shrink-0 transition-all duration-700`} 
-          style={{ 
-            width: '1131px', height: '800px', transform: `scale(${scale})`,
-            border: borderStyle
-          }}
+          style={{ width: '1131px', height: '800px', transform: `scale(${scale})` }}
         >
-          {/* 하드 모드 마지막 장 디테일 (붉은 그라데이션 제거, 차분한 블루 펄스 적용) */}
           {isHardMode && isLastPage && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#6366f115_0%,transparent_70%)] animate-pulse"></div>
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.05] flex items-center justify-center">
-                    <span className="text-[400px] font-black italic rotate-[-15deg] whitespace-nowrap text-indigo-600 tracking-tighter select-none">MISTAKES</span>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#e11d4808_0%,transparent_70%)]"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] flex items-center justify-center">
+                    <span className="text-[400px] font-black italic rotate-[-15deg] whitespace-nowrap text-indigo-600 tracking-tighter select-none uppercase">Bone Hitting</span>
                 </div>
             </div>
           )}
           <div className="flex-1 flex flex-col p-[50px] relative z-10">{children}</div>
-          
-          {/* 하단 페이지바 영역 완벽 복원 */}
           <div className="h-[40px] flex items-center justify-between px-[50px] bg-[#0b1018] border-t border-white/5 relative z-20">
             <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1] animate-pulse"></div>
@@ -309,7 +290,6 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
 
   return (
     <div className="w-full max-w-[1150px] mx-auto pb-32 px-4">
-      {/* 툴바 */}
       <div className="flex justify-between items-center bg-slate-900/95 p-5 rounded-3xl border border-white/10 sticky top-4 z-[500] backdrop-blur-xl mb-16 shadow-2xl gap-4">
         <div className="flex flex-col gap-1 w-full max-w-xs">
             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">분석 대상자</span>
@@ -323,7 +303,6 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         </div>
       </div>
 
-      {/* 1페이지: 프로필 */}
       <PageWrapper index={0}>
         <div className="flex justify-between items-start mb-10">
             <div className="flex flex-col">
@@ -352,7 +331,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
                     <div className="w-1.5 h-6 bg-indigo-500"></div>
                     <h3 className="text-[15px] font-black text-slate-400 uppercase tracking-[0.4em]">CORE STRENGTHS (상담 강점)</h3>
                 </div>
-                <div className="flex flex-col gap-3.5 custom-scrollbar overflow-y-auto pr-1">
+                <div className="flex flex-col gap-3.5 pr-1">
                     {(result?.strengths || []).slice(0, 4).map((s, i) => (
                         <div key={i} className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 flex items-start gap-4 shadow-sm hover:border-white/10 transition-colors">
                             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-500/30">
@@ -366,13 +345,11 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         </div>
       </PageWrapper>
 
-      {/* 2-5페이지: SPIN 단계 */}
       <PageWrapper index={1}><QuestioningAnalysisPage title="SPIN 질문" catTitle="상황 파악" catLabel="Situation" catQuestions={result?.spinQuestions?.situation || []} catAnalysis={result?.spinAnalysis?.situation || ""} catColor="text-cyan-400" counts={result?.spinCounts} total={totalQs} activeCat="S" mode={mode} /></PageWrapper>
       <PageWrapper index={2}><QuestioningAnalysisPage title="SPIN 질문 (Cont.)" catTitle="문제 탐색" catLabel="Problem" catQuestions={result?.spinQuestions?.problem || []} catAnalysis={result?.spinAnalysis?.problem || ""} catColor="text-blue-500" counts={result?.spinCounts} total={totalQs} activeCat="P" mode={mode} /></PageWrapper>
       <PageWrapper index={3}><QuestioningAnalysisPage title="SPIN 질문 (Cont.)" catTitle="시사점 도출" catLabel="Implication" catQuestions={result?.spinQuestions?.implication || []} catAnalysis={result?.spinAnalysis?.implication || ""} catColor="text-violet-500" counts={result?.spinCounts} total={totalQs} activeCat="I" mode={mode} /></PageWrapper>
       <PageWrapper index={4}><QuestioningAnalysisPage title="SPIN 질문 (Cont.)" catTitle="가치 확인" catLabel="Need-Payoff" catQuestions={result?.spinQuestions?.needPayoff || []} catAnalysis={result?.spinAnalysis?.needPayoff || ""} catColor="text-pink-500" counts={result?.spinCounts} total={totalQs} activeCat="N" mode={mode} /></PageWrapper>
 
-      {/* 6페이지: 미팅 팁 */}
       <PageWrapper index={5}>
         <div className="flex flex-col h-full bg-[#0b1018] border-emerald-500/20 rounded-[40px] border-2 p-12 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500/50 via-cyan-500/50 to-emerald-500/50 opacity-40"></div>
@@ -382,7 +359,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
                     <h2 className="text-[28px] font-black text-emerald-400 uppercase tracking-tight italic">핵심 미팅 전략 팁 (STRATEGY TIPS)</h2>
                 </div>
                 <div className="flex flex-col gap-8 mt-6 justify-center flex-1">
-                    {(result?.betterApproaches || []).slice(0, 4).map((tip, i) => (
+                    {(result?.betterApproaches || result?.keyMistakes || []).slice(0, 4).map((tip, i) => (
                         <div key={i} className="flex gap-6 items-start group">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] mt-2.5 shrink-0 transition-transform group-hover:scale-125"></div>
                             <p className="text-slate-200 font-medium leading-relaxed italic text-[22px] group-hover:text-white transition-colors">{tip}</p>
@@ -390,18 +367,17 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
                     ))}
                 </div>
             </div>
-            <div className="mt-auto pt-10 border-t border-white/5 flex justify-center"><p className="text-[12px] font-black text-emerald-500/30 uppercase tracking-[0.5em] italic">Strategic Action Plan & Conclusion</p></div>
         </div>
       </PageWrapper>
 
-      {/* 7페이지: 성장 포인트 및 스크립트 */}
+      {/* PAGE 7: 마스터 스크립트 2개 노출 수정 */}
       <PageWrapper index={6}>
         <div className="flex flex-col h-full gap-8">
-            <div className="flex flex-col gap-4 flex-1 overflow-hidden">
+            <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-3"><h2 className="text-[16px] font-black text-indigo-400 uppercase tracking-[0.3em] border-l-4 border-indigo-500 pl-4">전략적 성장 포인트 (GROWTH POINTS)</h2></div>
-                <div className="flex flex-col gap-3.5 custom-scrollbar overflow-y-auto flex-1 pr-1">
+                <div className="grid grid-cols-2 gap-4 flex-1">
                     {(result?.growthPoints || []).slice(0, 2).map((p, i) => (
-                        <div key={i} className="bg-[#0f172a] p-6 rounded-[25px] border border-white/5 flex items-center gap-6 shadow-xl hover:bg-slate-800 transition-colors shrink-0">
+                        <div key={i} className="bg-[#0f172a] p-6 rounded-[25px] border border-white/5 flex items-center gap-6 shadow-xl hover:bg-slate-800 transition-colors">
                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20"><svg className="w-7 h-7 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" /></svg></div>
                             <div className="flex flex-col gap-1"><h4 className="text-[18px] font-black text-white italic leading-tight">{p.title}</h4><p className="text-slate-300 text-[13px] leading-relaxed font-medium italic">{p.description}</p></div>
                         </div>
@@ -411,12 +387,13 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
             <div className="flex flex-col gap-4">
                 <h2 className="text-[16px] font-black text-cyan-400 uppercase tracking-widest border-l-4 border-cyan-500 pl-4">마스터를 위한 권장 스크립트</h2>
                 <div className="flex flex-col gap-4">
-                    {(result?.recommendedScripts || []).slice(0, 1).map((s, i) => (
+                    {/* [수정] 권장 스크립트 2개 노출 로직 */}
+                    {(result?.recommendedScripts || []).slice(0, 2).map((s, i) => (
                         <div key={i} className="flex flex-col gap-2">
-                            <div className="flex"><span className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-black text-[9px] uppercase tracking-widest italic">추천 화법 (RECOMMENDED)</span></div>
+                            <div className="flex"><span className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-black text-[9px] uppercase tracking-widest italic shadow-sm">추천 화법 (RECOMMENDED)</span></div>
                             <div className="bg-[#0f172a] p-7 rounded-[30px] border-2 border-white/5 relative overflow-hidden shadow-2xl">
                                 <div className="absolute top-0 left-0 w-2 h-full bg-cyan-500/40"></div>
-                                <p className="text-white font-black text-[22px] leading-snug italic tracking-tight">“{s.script}”</p>
+                                <p className="text-white font-black text-[18px] leading-snug italic tracking-tight">“{s.script}”</p>
                             </div>
                         </div>
                     ))}
@@ -425,7 +402,6 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         </div>
       </PageWrapper>
 
-      {/* 8페이지: 최종 진단 리포트 (차분한 블루 테마 적용) */}
       <PageWrapper index={7}>
         <StrategicFeedbackPage mistakes={result?.keyMistakes || []} approaches={result?.betterApproaches || []} mode={mode} />
       </PageWrapper>
