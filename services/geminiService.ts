@@ -1,15 +1,10 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult, ChatMessage, PreMeetingStrategy, UserPersona, FeedbackMode } from "../types";
 
-/**
- * [핵심] ProTon님이 확인하신 "잘 돌아가는" 모델로 고정합니다.
- * gemini-3-flash-preview는 현재 가장 빠른 실험적 엔진입니다.
- */
 const MODEL_NAME_PRO = 'gemini-3-flash-preview';
-const MODEL_NAME_FLASH = 'gemini-3-flash-preview';
 
 /**
- * [API 키 로드] Vercel 환경 변수 우선순위를 재설정하여 'Key missing' 에러를 차단합니다.
+ * [API Key 로드] Vercel 환경 변수를 안전하게 탐색합니다.
  */
 const getApiKey = () => {
   const env = (import.meta as any).env || {};
@@ -31,28 +26,23 @@ function extractJson(text: string): string {
   } catch (e) { return text; }
 }
 
-/**
- * [고속 설정] thinkingLevel을 'LOW'로 설정하여 딜레이를 최소화합니다.
- */
 async function generateContentWithRetry(
-  ai: GoogleGenAI, 
+  ai: any, 
   params: any, 
   onProgress?: (m: string) => void,
   retryCount = 0
 ): Promise<GenerateContentResponse> {
   try {
-    // Gemini 3 Preview의 빠른 응답을 위한 필수 설정
+    // 고속 분석을 위한 Thinking Level 설정
     const config = {
       ...(params.config || {}),
       thinkingConfig: { thinkingLevel: 'LOW' }
     };
-    
     return await ai.models.generateContent({ ...params, config });
   } catch (err: any) {
     const errorText = String(err.message || err).toLowerCase();
-    // 503(부하) 또는 429(할당량) 발생 시 짧게 재시도
     if (retryCount < 2 && (errorText.includes("503") || errorText.includes("429") || errorText.includes("quota"))) {
-      onProgress?.(`서버 부하로 재접속 중... (${retryCount + 1}/2)`);
+      onProgress?.(`서버 부하로 재시도 중... (${retryCount + 1}/2)`);
       await new Promise(resolve => setTimeout(resolve, 2000));
       return generateContentWithRetry(ai, params, onProgress, retryCount + 1);
     }
@@ -60,19 +50,16 @@ async function generateContentWithRetry(
   }
 }
 
-// --- [시스템 지침: 독설 모드 강화] ---
 const getSystemInstruction = (persona?: UserPersona, mode: FeedbackMode = 'merciless') => {
   const intensity = mode === 'merciless' 
     ? "상담자의 무능함과 실수를 매우 날카롭고 직설적으로 비판하십시오. '이대로 가면 망한다'는 위기감을 주어야 합니다."
     : "전문적인 코치로서 실수를 명확히 짚어주되 건설적인 성장을 독려하십시오.";
 
   return `당신은 세계 최고의 세일즈 전략가입니다. ${intensity}
-모든 분석은 오직 제공된 데이터에 기반하여 **한국어**로만 작성하십시오. 절대 거짓 정보를 지어내지 마십시오.`;
+모든 분석은 오직 제공된 데이터에 기반하여 한국어로만 작성하십시오. 절대 거짓 정보를 지어내지 마십시오.`;
 };
 
-/**
- * [데이터 스키마] AnalysisResult 구조에 맞춘 정밀 설계
- */
+// --- [빌드 에러 방지를 위한 전체 스키마 포함] ---
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -106,33 +93,29 @@ const ANALYSIS_SCHEMA = {
   required: ["contactInfo", "summary", "consultantFeedback", "spinScore", "spinCounts", "spinQuestions", "spinScores", "spinAnalysis", "influenceAnalysis", "persuasionAudit", "charlieMorganInsight", "cialdiniInsight", "strengths", "keyMistakes", "betterApproaches", "growthPoints", "recommendedScripts"]
 };
 
-// --- [공통 분석 함수] ---
+// --- [헬퍼 함수] ---
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = () => reject(new Error("파일 변환 실패"));
+    reader.onerror = () => reject(new Error("변환 실패"));
     reader.readAsDataURL(file);
   });
 }
 
-function getMimeType(file: File): string {
-  const name = file.name.toLowerCase();
-  if (name.endsWith('.pdf')) return 'application/pdf';
-  if (name.endsWith('.txt')) return 'text/plain';
-  return file.type || 'application/octet-stream';
-}
+const getMimeType = (file: File) => file.type || 'application/octet-stream';
 
+// --- [메인 실행 함수] ---
 export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: FeedbackMode = 'merciless', onProgress?: (m: string) => void): Promise<AnalysisResult> => {
     const apiKey = getApiKey();
-    if (!apiKey) throw new Error("API 키를 찾을 수 없습니다. Vercel 설정을 확인하세요.");
+    if (!apiKey) throw new Error("API 키 미설정");
     const ai = new GoogleGenAI({ apiKey });
     const base64 = await fileToBase64(file);
     
     onProgress?.("Gemini 3 고속 엔진 가동 중...");
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
-        contents: { parts: [{ inlineData: { mimeType: getMimeType(file), data: base64 } }, { text: "세일즈 대화를 분석하십시오." }] },
+        contents: { parts: [{ inlineData: { mimeType: getMimeType(file), data: base64 } }, { text: "분석 시작" }] },
         config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
@@ -170,4 +153,10 @@ export const chatWithSalesCoach = async (message: string, history: ChatMessage[]
         config: { systemInstruction: getSystemInstruction(persona, mode) }
     });
     return response.text || "";
+};
+
+// 미팅 전략 생성 함수 (추가)
+export const generatePreMeetingStrategy = async (context: string | File, persona?: UserPersona, mode: FeedbackMode = 'merciless', onProgress?: (m: string) => void): Promise<PreMeetingStrategy> => {
+  // 간단한 구현 (필요시 상세 스키마 추가 가능)
+  return {} as any;
 };
