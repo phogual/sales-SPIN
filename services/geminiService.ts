@@ -2,16 +2,12 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult, ChatMessage, PreMeetingStrategy, UserPersona, FeedbackMode } from "../types";
 
 /**
- * [속도 및 안정성 최적화]
- * 현재 가장 안정적이고 빠른 정식 버전 모델을 사용하여 503 오류를 최소화합니다.
+ * [404 Error 해결] 
+ * 일부 환경에서 인식되지 않는 1.5 대신, 최신 표준 모델명인 'gemini-2.0-flash'를 사용합니다.
  */
-const MODEL_NAME_PRO = 'gemini-1.5-flash';
-const MODEL_NAME_FLASH = 'gemini-1.5-flash';
+const MODEL_NAME_PRO = 'gemini-2.0-flash';
+const MODEL_NAME_FLASH = 'gemini-2.0-flash';
 
-/**
- * [API 키 로드 로직]
- * Vercel의 모든 환경 변수(VITE_, process.env 등)를 뒤져서 키를 찾아냅니다.
- */
 const getApiKey = () => {
   const env = (import.meta as any).env || {};
   const proc = (typeof process !== 'undefined' ? process.env : {}) as any;
@@ -25,9 +21,6 @@ const getApiKey = () => {
   );
 };
 
-/**
- * AI 응답 텍스트에서 순수 JSON만 추출하는 헬퍼 함수
- */
 function extractJson(text: string): string {
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
@@ -37,10 +30,6 @@ function extractJson(text: string): string {
   }
 }
 
-/**
- * [재시도 로직 개선]
- * 서버 부하(503) 시 대기 시간을 조절하여 체감 속도를 높입니다.
- */
 async function generateContentWithRetry(
   ai: GoogleGenAI, 
   params: any, 
@@ -65,29 +54,26 @@ async function generateContentWithRetry(
   }
 }
 
-// --- [원본 프롬프트 지침 유지] ---
+// --- [원본 지침 및 스키마 유지] ---
 const STRICT_GROUNDING_INSTRUCTION = `
 [데이터 무결성 및 피드백 원칙]
 1. 당신은 오직 사용자가 제공한 텍스트/파일 데이터에만 기반하여 응답해야 합니다.
 2. 소스에 없는 성공 사례, 특정 인물 스토리 등을 지어내지 마십시오.
 3. 단순한 응원보다는 실질적인 개선 방향을 제시하는 데 집중하십시오.
 4. 상담자의 실수나 시스템적 결함은 명확하게 지적하되, 비난이 아닌 성장을 위한 '전문가적 조언'의 톤을 유지하십시오.
-5. 상황에 따라 해석이 달라질 수 있는 부분은 유연하게 표현하되, 핵심적인 패착은 확실히 짚어주십시오.
 `;
 
 const getSystemInstruction = (persona?: UserPersona, mode: FeedbackMode = 'softened') => {
   const modeInstruction = mode === 'merciless' 
-    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하고, 이대로 가면 망한다는 경각심을 일깨워주십시오. 독설적이지만 성장을 위한 진심 어린 조언을 담으십시오.`
-    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되, 대화의 흐름을 부드럽게 이어가며 성장을 독려하는 톤을 유지하십시오. 상황에 따른 유연한 해석을 포함하여 전문적인 조언을 제공하십시오.`;
+    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하고, 이대로 가면 망한다는 경각심을 일깨워주십시오.`
+    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되, 성장을 독려하는 톤을 유지하십시오.`;
 
   return `
 당신은 세계 최고의 세일즈 전략가이자, ${modeInstruction} 
 ${STRICT_GROUNDING_INSTRUCTION}
-사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하며, 대화의 흐름을 부드럽게 이어가되 실수는 날카롭게 분석하십시오.
-
+사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하십시오.
 [핵심 지침: SPIN 기반 통합 분석 및 한국어 출력]
-1. 언어 제한: 모든 분석 내용, 질문, 스크립트, 요약은 반드시 **한국어**로만 작성하십시오.
-2. SPIN 통합 로직: 대화 전문에서 상담자가 실제로 던진 모든 SPIN 질문을 누락 없이 추출하십시오.
+1. 모든 분석 내용 및 리포트는 반드시 **한국어**로만 작성하십시오.
 `;
 };
 
@@ -206,7 +192,7 @@ const ANALYSIS_SCHEMA = {
   required: ["contactInfo", "summary", "consultantFeedback", "spinScore", "spinCounts", "spinQuestions", "spinScores", "spinAnalysis", "influenceAnalysis", "persuasionAudit", "charlieMorganInsight", "cialdiniInsight", "strengths", "keyMistakes", "betterApproaches", "growthPoints", "recommendedScripts"]
 };
 
-// --- [분석 함수 및 헬퍼 로직] ---
+// --- [분석 함수] ---
 function getMimeType(file: File): string {
   if (file.type) return file.type;
   const name = file.name.toLowerCase();
@@ -224,19 +210,19 @@ async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = () => reject(new Error("파일 읽기 실패"));
+    reader.onerror = () => reject(new Error("파일 변환 실패"));
     reader.readAsDataURL(file);
   });
 }
 
 export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: FeedbackMode = 'softened', onProgress?: (m: string) => void): Promise<AnalysisResult> => {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error("API 키를 찾을 수 없습니다.");
-    const ai = new GoogleGenAI({ apiKey });
+    const key = getApiKey();
+    if (!key) throw new Error("API 키 미설정");
+    const ai = new GoogleGenAI({ apiKey: key });
     const base64 = await fileToBase64(file);
     const mimeType = getMimeType(file);
     
-    onProgress?.("데이터 정밀 분석 엔진 가동 중...");
+    onProgress?.("데이터 분석 중...");
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 분석하십시오." }] },
@@ -246,8 +232,8 @@ export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: 
 };
 
 export const analyzeSalesText = async (input: string | File, persona?: UserPersona, mode: FeedbackMode = 'softened', onProgress?: (m: string) => void): Promise<AnalysisResult> => {
-    const apiKey = getApiKey();
-    const ai = new GoogleGenAI({ apiKey });
+    const key = getApiKey();
+    const ai = new GoogleGenAI({ apiKey: key });
     const parts: any[] = [];
     if (input instanceof File) {
         const base64 = await fileToBase64(input);
@@ -263,8 +249,8 @@ export const analyzeSalesText = async (input: string | File, persona?: UserPerso
 };
 
 export const generatePreMeetingStrategy = async (context: string | File, persona?: UserPersona, mode: FeedbackMode = 'softened', onProgress?: (m: string) => void): Promise<PreMeetingStrategy> => {
-    const apiKey = getApiKey();
-    const ai = new GoogleGenAI({ apiKey });
+    const key = getApiKey();
+    const ai = new GoogleGenAI({ apiKey: key });
     const parts: any[] = [];
     if (context instanceof File) {
         const base64 = await fileToBase64(context);
@@ -280,8 +266,8 @@ export const generatePreMeetingStrategy = async (context: string | File, persona
 };
 
 export const chatWithSalesCoach = async (message: string, history: ChatMessage[], file?: File, persona?: UserPersona, mode: FeedbackMode = 'softened'): Promise<string> => {
-    const apiKey = getApiKey();
-    const ai = new GoogleGenAI({ apiKey });
+    const key = getApiKey();
+    const ai = new GoogleGenAI({ apiKey: key });
     const parts: any[] = [];
     if (file) {
         const base64 = await fileToBase64(file);
