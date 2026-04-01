@@ -5,7 +5,7 @@ const MODEL_NAME_PRO = 'gemini-3-flash-preview';
 const MODEL_NAME_FLASH = 'gemini-3-flash-preview';
 
 /**
- * [수정] Vercel 환경 변수(VITE_GEMINI_API_KEY)를 최우선으로 찾도록 개선
+ * [API Key 로드] Vercel 및 로컬 환경 변수를 안전하게 탐색합니다.
  */
 const getApiKey = () => {
   const env = (import.meta as any).env || {};
@@ -24,9 +24,7 @@ function extractJson(text: string): string {
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     return jsonMatch ? jsonMatch[0] : text;
-  } catch (e) {
-    return text;
-  }
+  } catch (e) { return text; }
 }
 
 async function generateContentWithRetry(
@@ -59,25 +57,36 @@ const STRICT_GROUNDING_INSTRUCTION = `
 2. 소스에 없는 성공 사례, 특정 인물 스토리 등을 지어내지 마십시오.
 3. 단순한 응원보다는 실질적인 개선 방향을 제시하는 데 집중하십시오.
 4. 상담자의 실수나 시스템적 결함은 명확하게 지적하되, 비난이 아닌 성장을 위한 '전문가적 조언'의 톤을 유지하십시오.
+5. 상황에 따라 해석이 달라질 수 있는 부분은 유연하게 표현하되, 핵심적인 패착은 확실히 짚어주십시오.
 `;
 
 const getSystemInstruction = (persona?: UserPersona, mode: FeedbackMode = 'softened') => {
   const modeInstruction = mode === 'merciless' 
-    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하고, 이대로 가면 망한다는 경각심을 일깨워주십시오.`
+    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하고, 이대로 가면 망한다는 경각심을 일깨워주십시오. 독설적이지만 성장을 위한 진심 어린 조언을 담으십시오.`
     : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되, 대화의 흐름을 부드럽게 이어가며 성장을 독려하는 톤을 유지하십시오.`;
 
   return `
 당신은 세계 최고의 세일즈 전략가이자, ${modeInstruction} 
 ${STRICT_GROUNDING_INSTRUCTION}
 사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하며 한국어로만 응답하십시오.
+
+[SPIN 질문 추출 절대 원칙]
+1. Situation, Problem, Implication, Need-Payoff 각 단계별로 **반드시 4개 이상의 질문**을 생성하십시오.
+2. 상담자가 실제로 한 질문이 부족하다면, 해당 맥락에서 반드시 던졌어야 할 '마스터급 권장 질문'을 추가해서라도 **무조건 단계별 4개**를 채우십시오.
+3. 모든 질문과 분석 내용은 반드시 **한국어**로만 작성하십시오.
 `;
 };
 
-// --- [Schemas 설정 - 원본 유지 및 필수 항목 강화] ---
+// --- [Schemas 설정: Insights, Strategy, Analysis 완벽 복구] ---
 const INSIGHTS_SCHEMA = {
   charlieMorganInsight: {
     type: Type.OBJECT,
-    properties: { deepPain: { type: Type.STRING }, gapDefinition: { type: Type.STRING }, bridgePositioning: { type: Type.STRING }, objectionStrategy: { type: Type.STRING } },
+    properties: { 
+      deepPain: { type: Type.STRING }, 
+      gapDefinition: { type: Type.STRING }, 
+      bridgePositioning: { type: Type.STRING }, 
+      objectionStrategy: { type: Type.STRING } 
+    },
     required: ["deepPain", "gapDefinition", "bridgePositioning", "objectionStrategy"]
   },
   cialdiniInsight: {
@@ -89,7 +98,11 @@ const INSIGHTS_SCHEMA = {
         type: Type.ARRAY,
         items: {
           type: Type.OBJECT,
-          properties: { principle: { type: Type.STRING }, intent: { type: Type.STRING }, question: { type: Type.STRING } },
+          properties: { 
+            principle: { type: Type.STRING }, 
+            intent: { type: Type.STRING }, 
+            question: { type: Type.STRING } 
+          },
           required: ["principle", "intent", "question"]
         }
       }
@@ -162,21 +175,16 @@ const ANALYSIS_SCHEMA = {
     spinQuestions: { 
         type: Type.OBJECT, 
         properties: { 
-            situation: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA }, 
-            problem: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA }, 
-            implication: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA }, 
-            needPayoff: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA } 
+            situation: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA, description: "최소 4개 추출" }, 
+            problem: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA, description: "최소 4개 추출" }, 
+            implication: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA, description: "최소 4개 추출" }, 
+            needPayoff: { type: Type.ARRAY, items: SPIN_QUESTION_ITEM_SCHEMA, description: "최소 4개 추출" } 
         }, 
         required: ["situation", "problem", "implication", "needPayoff"] 
     },
     spinScores: { 
         type: Type.OBJECT, 
-        properties: { 
-            situation: { type: Type.NUMBER }, 
-            problem: { type: Type.NUMBER }, 
-            implication: { type: Type.NUMBER }, 
-            needPayoff: { type: Type.NUMBER } 
-        }, 
+        properties: { situation: { type: Type.NUMBER }, problem: { type: Type.NUMBER }, implication: { type: Type.NUMBER }, needPayoff: { type: Type.NUMBER } }, 
         required: ["situation", "problem", "implication", "needPayoff"] 
     },
     spinAnalysis: {
@@ -197,7 +205,7 @@ const ANALYSIS_SCHEMA = {
   required: ["contactInfo", "summary", "consultantFeedback", "spinScore", "spinCounts", "spinQuestions", "spinScores", "spinAnalysis", "influenceAnalysis", "persuasionAudit", "charlieMorganInsight", "cialdiniInsight", "strengths", "keyMistakes", "betterApproaches", "growthPoints", "recommendedScripts"]
 };
 
-// --- [헬퍼 함수] ---
+// --- [헬퍼 함수 및 분석 실행 함수] ---
 function getMimeType(file: File): string {
   if (file.type) return file.type;
   const name = file.name.toLowerCase();
@@ -215,7 +223,6 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// --- [메인 실행 함수] ---
 export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: FeedbackMode = 'softened', onProgress?: (m: string) => void): Promise<AnalysisResult> => {
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const base64 = await fileToBase64(file);
@@ -225,7 +232,7 @@ export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: 
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 분석하십시오." }] },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -241,7 +248,7 @@ export const analyzeSalesText = async (input: string | File, persona?: UserPerso
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -257,7 +264,7 @@ export const generatePreMeetingStrategy = async (context: string | File, persona
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: STRATEGY_SCHEMA } as any
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: STRATEGY_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -273,7 +280,7 @@ export const chatWithSalesCoach = async (message: string, history: ChatMessage[]
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode) }
+        config: { systemInstruction: getSystemInstruction(persona, mode), thinkingConfig: { thinkingLevel: 'LOW' } }
     });
     return response.text || "";
 };
