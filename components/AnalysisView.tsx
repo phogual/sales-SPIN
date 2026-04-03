@@ -41,7 +41,7 @@ const QuestionList: React.FC<{ title: string; questions: { original: string; bet
             
             <div className="bg-white/5 border-white/5 p-4 rounded-[25px] border relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">잘못된 점 및 조언 (Critique & Advice)</span>
+                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">분석 및 조언 (Critique & Advice)</span>
                 </div>
                 <p className="text-slate-200 text-[14px] leading-relaxed font-medium italic relative z-10">
                     {analysis || "분석 데이터가 없습니다."}
@@ -146,45 +146,46 @@ const QuestioningAnalysisPage: React.FC<{
 
 /**
  * [수정] 최종 피드백 페이지 (Page 8)
- * 이미지 3번 스타일(image_b8e808.png)을 하드 모드에서 구현했습니다.
+ * - 하드 모드일 때만 치명적 패착에 레드 테마 적용 (과하지 않게)
+ * - 'BONE-HITTING ADVICE' 문구 제거 완료
  */
 const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]; mode?: FeedbackMode }> = ({ mistakes, approaches, mode }) => {
     const isHardMode = mode === 'merciless';
 
     return (
         <div className="flex flex-col gap-6 h-full relative">
-            {/* Header Area */}
             <div className="flex justify-between items-start">
-                <h2 className={`text-[42px] font-black italic tracking-tighter uppercase leading-none ${isHardMode ? 'text-rose-600 drop-shadow-[0_0_10px_rgba(225,29,72,0.4)]' : 'text-indigo-500'}`}>
+                {/* 타이틀: 하드 모드일 때만 텍스트 레드 포인트 */}
+                <h2 className={`text-[42px] font-black italic tracking-tighter uppercase leading-none ${isHardMode ? 'text-rose-600' : 'text-indigo-500'}`}>
                     {isHardMode ? 'MERCILESS FEEDBACK' : 'STRATEGIC FEEDBACK'}
                 </h2>
                 <div className="text-right flex flex-col items-end">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">독설적 통찰</span>
-                    <div className="bg-rose-950/30 px-6 py-2 rounded-full border border-rose-500/30 text-[10px] font-black text-rose-500 uppercase tracking-widest italic shadow-lg">
-                        BONE-HITTING ADVICE
+                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">전략 진단 리포트</span>
+                    {/* [삭제] BONE-HITTING ADVICE 배지 제거 및 일반 정보 배지로 교체 */}
+                    <div className={`px-6 py-2 rounded-full border ${isHardMode ? 'border-rose-500/30 text-rose-500 bg-rose-500/5' : 'border-indigo-500/30 text-indigo-400 bg-indigo-500/5'} text-[10px] font-black uppercase tracking-widest italic`}>
+                        {isHardMode ? 'CRITICAL REALITY CHECK' : 'CORE IMPROVEMENT REPORT'}
                     </div>
                 </div>
             </div>
 
-            {/* Content Sections */}
-            <div className="flex flex-col gap-10 flex-1 mt-4">
-                {/* Critical Mistakes Section */}
+            <div className="flex flex-col gap-8 flex-1 mt-6">
+                {/* 치명적 패착: 하드 모드일 때만 연한 붉은 배경과 테두리 적용 */}
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-1.5 h-6 bg-rose-600"></div>
+                        <div className={`w-1.5 h-6 ${isHardMode ? 'bg-rose-600' : 'bg-indigo-600'}`}></div>
                         <h3 className="text-[16px] font-black text-slate-400 uppercase tracking-[0.3em]">치명적 패착 (CRITICAL MISTAKES)</h3>
                     </div>
                     <div className="flex flex-col gap-3">
                         {(mistakes || []).slice(0, 3).map((m, i) => (
-                            <div key={i} className="bg-rose-950/10 p-5 rounded-2xl border border-rose-500/10 flex items-start gap-6 transition-all hover:bg-rose-950/20">
-                                <span className="text-rose-600 font-black text-2xl italic shrink-0 leading-none">{i+1}</span>
+                            <div key={i} className={`p-5 rounded-2xl border flex items-start gap-6 transition-all ${isHardMode ? 'bg-rose-950/10 border-rose-500/20' : 'bg-white/5 border-white/5'}`}>
+                                <span className={`${isHardMode ? 'text-rose-600' : 'text-indigo-500'} font-black text-2xl italic shrink-0 leading-none`}>{i+1}</span>
                                 <p className="text-slate-100 font-bold italic text-[18px] leading-snug">{m}</p>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Upgrade Path Section */}
+                {/* 업그레이드 솔루션: 차분한 테마 유지 */}
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-1.5 h-6 bg-emerald-600"></div>
@@ -192,7 +193,7 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                     </div>
                     <div className="flex flex-col gap-3">
                         {(approaches || []).slice(0, 2).map((a, i) => (
-                            <div key={i} className="bg-emerald-950/5 p-5 rounded-2xl border border-emerald-500/10 flex items-start gap-6 transition-all hover:bg-emerald-950/10">
+                            <div key={i} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-start gap-6 transition-all hover:bg-white/10">
                                 <span className="text-emerald-500 font-black text-2xl italic shrink-0 leading-none">{i+1}</span>
                                 <p className="text-slate-100 font-bold italic text-[18px] leading-snug">{a}</p>
                             </div>
@@ -200,11 +201,11 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                     </div>
                 </div>
             </div>
-
-            {/* Bottom Slogan Bar (Image 3 Style) */}
-            <div className="mt-auto bg-rose-600 py-6 px-10 rounded-full shadow-[0_15px_35px_rgba(225,29,72,0.3)] border border-rose-500/20">
+            
+            {/* 하단 바: 하드 모드일 때만 붉은 강조 */}
+            <div className={`mt-auto py-6 px-10 rounded-full border ${isHardMode ? 'bg-rose-700/80 border-rose-500/20 shadow-[0_10px_30px_rgba(225,29,72,0.2)]' : 'bg-indigo-600 border-indigo-500/20 shadow-2xl'}`}>
                 <p className="text-white font-black text-center text-[20px] tracking-tight uppercase italic leading-tight">
-                    “피드백은 아프지만, 성장은 그 고통의 끝에서 시작됩니다.”
+                    핵심 개선 과제를 즉시 시스템에 반영하십시오.
                 </p>
             </div>
         </div>
@@ -265,18 +266,19 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
           className={`${baseBg} text-white overflow-hidden shadow-2xl relative flex flex-col origin-top shrink-0 transition-all duration-700`} 
           style={{ width: '1131px', height: '800px', transform: `scale(${scale})` }}
         >
+          {/* 하드 모드 마지막 장의 워터마크 효과도 채도 조절 */}
           {isHardMode && isLastPage && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#e11d4808_0%,transparent_70%)]"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] flex items-center justify-center">
-                    <span className="text-[400px] font-black italic rotate-[-15deg] whitespace-nowrap text-indigo-600 tracking-tighter select-none uppercase">Bone Hitting</span>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#e11d4805_0%,transparent_70%)]"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.02] flex items-center justify-center">
+                    <span className="text-[400px] font-black italic rotate-[-15deg] whitespace-nowrap text-rose-600 tracking-tighter select-none uppercase">ANALYSIS</span>
                 </div>
             </div>
           )}
           <div className="flex-1 flex flex-col p-[50px] relative z-10">{children}</div>
           <div className="h-[40px] flex items-center justify-between px-[50px] bg-[#0b1018] border-t border-white/5 relative z-20">
             <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1] animate-pulse"></div>
+                <div className={`w-1.5 h-1.5 rounded-full ${isHardMode && isLastPage ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : 'bg-indigo-500 shadow-[0_0_8px_#6366f1]'} animate-pulse`}></div>
                 <span className="text-[10px] font-black tracking-widest uppercase text-slate-500">세일즈 정밀 진단 시스템 V2.2</span>
             </div>
             <span className="text-[10px] font-black tracking-widest uppercase italic text-slate-500">PAGE {index + 1} / {TOTAL_PAGES}</span>
@@ -296,7 +298,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
             <input type="text" value={editableName} onChange={(e) => setEditableName(e.target.value)} className="bg-slate-950/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm font-bold text-white outline-none w-full" />
         </div>
         <div className="flex gap-2 shrink-0">
-            <button onClick={handleDownloadPDF} disabled={isPdfGenerating} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-black text-white uppercase min-w-[140px] shadow-lg transition-all active:scale-95">
+            <button onClick={handleDownloadPDF} disabled={isPdfGenerating} className={`px-6 py-3 ${mode === 'merciless' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-500'} rounded-xl text-xs font-black text-white uppercase min-w-[140px] shadow-lg transition-all active:scale-95`}>
               {isPdfGenerating ? `Capture ${pdfProgress}/${TOTAL_PAGES}...` : 'Export PDF Report'}
             </button>
             <button onClick={onReset} className="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-300 border border-white/10 transition-colors">Return</button>
@@ -359,7 +361,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
                     <h2 className="text-[28px] font-black text-emerald-400 uppercase tracking-tight italic">핵심 미팅 전략 팁 (STRATEGY TIPS)</h2>
                 </div>
                 <div className="flex flex-col gap-8 mt-6 justify-center flex-1">
-                    {(result?.betterApproaches || result?.keyMistakes || []).slice(0, 4).map((tip, i) => (
+                    {(result?.betterApproaches || []).slice(0, 4).map((tip, i) => (
                         <div key={i} className="flex gap-6 items-start group">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] mt-2.5 shrink-0 transition-transform group-hover:scale-125"></div>
                             <p className="text-slate-200 font-medium leading-relaxed italic text-[22px] group-hover:text-white transition-colors">{tip}</p>
@@ -370,29 +372,27 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         </div>
       </PageWrapper>
 
-      {/* PAGE 7: 마스터 스크립트 2개 노출 수정 */}
       <PageWrapper index={6}>
         <div className="flex flex-col h-full gap-8">
             <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-3"><h2 className="text-[16px] font-black text-indigo-400 uppercase tracking-[0.3em] border-l-4 border-indigo-500 pl-4">전략적 성장 포인트 (GROWTH POINTS)</h2></div>
-                <div className="grid grid-cols-2 gap-4 flex-1">
+                <div className="grid grid-cols-2 gap-4">
                     {(result?.growthPoints || []).slice(0, 2).map((p, i) => (
-                        <div key={i} className="bg-[#0f172a] p-6 rounded-[25px] border border-white/5 flex items-center gap-6 shadow-xl hover:bg-slate-800 transition-colors">
+                        <div key={i} className="bg-[#0f172a] p-6 rounded-[25px] border border-white/5 flex items-center gap-6 shadow-xl hover:bg-slate-800 transition-colors shrink-0">
                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20"><svg className="w-7 h-7 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" /></svg></div>
                             <div className="flex flex-col gap-1"><h4 className="text-[18px] font-black text-white italic leading-tight">{p.title}</h4><p className="text-slate-300 text-[13px] leading-relaxed font-medium italic">{p.description}</p></div>
                         </div>
                     ))}
                 </div>
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 flex-1">
                 <h2 className="text-[16px] font-black text-cyan-400 uppercase tracking-widest border-l-4 border-cyan-500 pl-4">마스터를 위한 권장 스크립트</h2>
-                <div className="flex flex-col gap-4">
-                    {/* [수정] 권장 스크립트 2개 노출 로직 */}
+                <div className="flex flex-col gap-4 justify-center flex-1">
                     {(result?.recommendedScripts || []).slice(0, 2).map((s, i) => (
                         <div key={i} className="flex flex-col gap-2">
                             <div className="flex"><span className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-black text-[9px] uppercase tracking-widest italic shadow-sm">추천 화법 (RECOMMENDED)</span></div>
                             <div className="bg-[#0f172a] p-7 rounded-[30px] border-2 border-white/5 relative overflow-hidden shadow-2xl">
-                                <div className="absolute top-0 left-0 w-2 h-full bg-cyan-500/40"></div>
+                                <div className="absolute top-0 left-0 w-2 h-full bg-cyan-500/40 shadow-[2px_0_10px_rgba(34,211,238,0.3)]"></div>
                                 <p className="text-white font-black text-[18px] leading-snug italic tracking-tight">“{s.script}”</p>
                             </div>
                         </div>
@@ -406,5 +406,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         <StrategicFeedbackPage mistakes={result?.keyMistakes || []} approaches={result?.betterApproaches || []} mode={mode} />
       </PageWrapper>
     </div>
+  );
+};
   );
 };
