@@ -5,7 +5,7 @@ const MODEL_NAME_PRO = 'gemini-3-flash-preview';
 const MODEL_NAME_FLASH = 'gemini-3-flash-preview';
 
 /**
- * [API Key 로드] Vercel 및 로컬 환경 변수를 안전하게 탐색합니다.
+ * [API Key 로드] Vercel 및 로컬 환경 변수를 가장 확실하게 탐색합니다.
  */
 const getApiKey = () => {
   const env = (import.meta as any).env || {};
@@ -24,7 +24,9 @@ function extractJson(text: string): string {
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     return jsonMatch ? jsonMatch[0] : text;
-  } catch (e) { return text; }
+  } catch (e) {
+    return text;
+  }
 }
 
 async function generateContentWithRetry(
@@ -34,6 +36,10 @@ async function generateContentWithRetry(
   retryCount = 0
 ): Promise<GenerateContentResponse> {
   try {
+    // 고속 분석을 위한 Thinking Level 설정
+    if (!params.config) params.config = {};
+    params.config.thinkingConfig = { thinkingLevel: 'LOW' };
+
     return await ai.models.generateContent(params);
   } catch (err: any) {
     const errorText = String(err.message || err).toLowerCase();
@@ -51,34 +57,37 @@ async function generateContentWithRetry(
   }
 }
 
+/**
+ * [강력한 지침] 있지도 않은 사실(MD 경력, 환불 정책 등)을 지어내는 행위를 엄격히 금지합니다.
+ */
 const STRICT_GROUNDING_INSTRUCTION = `
-[데이터 무결성 및 사실 기반 분석 절대 원칙]
-1. **데이터 절대 엄수**: 오직 사용자가 제공한 텍스트 또는 파일 데이터에 명시적으로 언급된 사실에만 기반하여 응답하십시오.
-2. **추측 및 날조 금지**: 상담자(코치)의 경력, 성과, 성향이나 고객의 상황을 데이터 외의 정보로 추측하거나 허구로 지어내는 것을 엄격히 금지합니다.
-3. **자의적 판단 배제**: 데이터에 드러나지 않은 맥락을 "그럴 것이다"라고 함부로 판단하지 마십시오. 확인되지 않은 사실을 바탕으로 비판하거나 조언하지 마십시오.
-4. **증거 기반 분석**: 모든 분석과 지적 사항은 반드시 대화 내용 중 구체적인 증거(스크립트)를 바탕으로 도출되어야 합니다.
-5. **데이터 부족 시 대응**: 만약 특정 항목(예: SPIN 질문 4개)을 채울 만큼 데이터가 충분하지 않다면, 억지로 지어내지 말고 발견된 사실만 출력하거나 '해당 데이터 기반 확인 불가'라고 명시하십시오.
+[데이터 무결성 및 가상 정보 생성 절대 금지 원칙]
+1. **경력 날조 금지**: 상담자(사용자)를 'MD 출신', '콘텐츠 전략가' 등 데이터에 명시되지 않은 특정 직업군으로 단정하지 마십시오.
+2. **정책 날조 금지**: '100% 환불 보장', '3개월 성과 보장', '무료 체험' 등 원본 데이터에 없는 비즈니스 정책이나 보상안을 임의로 제안하지 마십시오.
+3. **오지랖 금지**: 상담자의 상황을 "이럴 것이다"라고 넘겨짚지 마십시오. "MD 출신 전문가로서~"와 같은 가짜 서두를 절대 사용하지 마십시오.
+4. **증거 기반 분석**: 모든 분석과 지적은 오직 대화 텍스트 내의 실제 발화 내용을 증거로 삼아야 합니다.
+5. **분석 이행**: 데이터가 부족하더라도 '분석 불가'라고 끝내지 마십시오. 말투, 대화의 주도권, 질문의 세련미 등 드러난 단서 안에서만 전문가적 견해를 내놓으십시오.
 `;
 
 const getSystemInstruction = (persona?: UserPersona, mode: FeedbackMode = 'softened') => {
   const modeInstruction = mode === 'merciless' 
-    ? `당신은 매우 직설적이고 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 데이터에 근거하여 자비 없이 지적하십시오. 단, 없는 사실을 지어내어 비난하는 것은 절대 허용되지 않습니다.`
-    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 팩트 위주로 명확히 짚어주되 성장을 독려하십시오.`;
+    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하되, 반드시 팩트에만 근거하십시오.`
+    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되, 성장을 독려하는 톤을 유지하십시오.`;
 
   return `
-당신은 세계 최고의 세일즈 전략가입니다. 
+당신은 세계 최고의 세일즈 전략가이자 비즈니스 분석가입니다. 
 ${STRICT_GROUNDING_INSTRUCTION}
-사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하되, 모든 분석은 **한국어**로, 오직 **제공된 원본 데이터**에만 입각하여 수행하십시오.
+사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하며 모든 분석은 **한국어**로만 수행하십시오.
 
 [핵심 분석 지침]
-1. **사실 여부 검증**: 분석을 출력하기 전, 해당 내용이 원본 데이터에 실제로 존재하는지 스스로 검증하십시오. 
-2. **상담자 상황 판단 제한**: 데이터에 명시되지 않은 상담자의 비즈니스 상황이나 개인적 배경을 임의로 규정하지 마십시오.
-3. **SPIN 추출 원칙**: 상담자가 실제로 던진 질문 원문을 누락이나 변형 없이 그대로 추출하십시오. 데이터에 없는 질문을 '상담자가 한 질문'인 것처럼 생성하지 마십시오.
-4. **전문적 거리 유지**: 분석가로서의 객관성을 유지하며, 데이터 밖의 영역으로 넘겨짚는 행위를 멈추십시오.
+1. **SPIN 추출**: 대화 전문에서 상담자가 실제로 던진 SPIN 질문을 누락 없이 추출하십시오. (각 단계별 최소 4개 지향)
+2. **권장 스크립트**: 상담자가 실제로 가진 전문 영역 안에서만 말투를 세련되게 다듬어 **정확히 2개**를 제시하십시오.
+3. **분석의 질**: 상담자의 심리적 트리거 활용 능력, 시스템적 부재를 정밀하게 진단하십시오. 
+4. **사실 확인**: 답변을 내놓기 전 "내가 지금 상담자의 경력을 지어내고 있는가?"를 스스로 검증하십시오.
 `;
 };
 
-// --- [Schemas 설정: Insights, Strategy, Analysis 완벽 복구] ---
+// --- [Schemas 설정: 데이터 구조 완벽 복구] ---
 const INSIGHTS_SCHEMA = {
   charlieMorganInsight: {
     type: Type.OBJECT,
@@ -99,11 +108,7 @@ const INSIGHTS_SCHEMA = {
         type: Type.ARRAY,
         items: {
           type: Type.OBJECT,
-          properties: { 
-            principle: { type: Type.STRING }, 
-            intent: { type: Type.STRING }, 
-            question: { type: Type.STRING } 
-          },
+          properties: { principle: { type: Type.STRING }, intent: { type: Type.STRING }, question: { type: Type.STRING } },
           required: ["principle", "intent", "question"]
         }
       }
@@ -206,7 +211,7 @@ const ANALYSIS_SCHEMA = {
   required: ["contactInfo", "summary", "consultantFeedback", "spinScore", "spinCounts", "spinQuestions", "spinScores", "spinAnalysis", "influenceAnalysis", "persuasionAudit", "charlieMorganInsight", "cialdiniInsight", "strengths", "keyMistakes", "betterApproaches", "growthPoints", "recommendedScripts"]
 };
 
-// --- [헬퍼 함수 및 분석 실행 함수] ---
+// --- [헬퍼 및 메인 실행 함수] ---
 function getMimeType(file: File): string {
   if (file.type) return file.type;
   const name = file.name.toLowerCase();
@@ -229,11 +234,11 @@ export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: 
     const base64 = await fileToBase64(file);
     const mimeType = getMimeType(file);
     
-    onProgress?.("데이터 정밀 분석 중...");
+    onProgress?.("팩트 기반 정밀 데이터 분석 중...");
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
-        contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 분석하십시오." }] },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
+        contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 정밀 분석하십시오. 원본에 없는 상담자의 경력이나 사업 정책을 지어내지 마십시오." }] },
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -249,7 +254,7 @@ export const analyzeSalesText = async (input: string | File, persona?: UserPerso
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -265,7 +270,7 @@ export const generatePreMeetingStrategy = async (context: string | File, persona
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: STRATEGY_SCHEMA, thinkingConfig: { thinkingLevel: 'LOW' } } as any
+        config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: STRATEGY_SCHEMA } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
 };
@@ -281,7 +286,7 @@ export const chatWithSalesCoach = async (message: string, history: ChatMessage[]
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
         contents: { parts },
-        config: { systemInstruction: getSystemInstruction(persona, mode), thinkingConfig: { thinkingLevel: 'LOW' } }
+        config: { systemInstruction: getSystemInstruction(persona, mode) }
     });
     return response.text || "";
 };
