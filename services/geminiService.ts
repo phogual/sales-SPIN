@@ -5,7 +5,7 @@ const MODEL_NAME_PRO = 'gemini-3-flash-preview';
 const MODEL_NAME_FLASH = 'gemini-3-flash-preview';
 
 /**
- * [API Key 로드] Vercel 및 로컬 환경 변수를 가장 확실하게 탐색합니다.
+ * [API Key 로드] Vercel 및 로컬 환경 변수를 안전하게 탐색합니다.
  */
 const getApiKey = () => {
   const env = (import.meta as any).env || {};
@@ -24,9 +24,7 @@ function extractJson(text: string): string {
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     return jsonMatch ? jsonMatch[0] : text;
-  } catch (e) {
-    return text;
-  }
+  } catch (e) { return text; }
 }
 
 async function generateContentWithRetry(
@@ -58,32 +56,32 @@ async function generateContentWithRetry(
 }
 
 /**
- * [강력한 지침] 있지도 않은 사실(MD 경력, 환불 정책 등)을 지어내는 행위를 엄격히 금지합니다.
+ * [가장 강력한 지침] 팩트 체크를 강제하고 가상의 정체성 생성을 금지합니다.
  */
 const STRICT_GROUNDING_INSTRUCTION = `
-[데이터 무결성 및 가상 정보 생성 절대 금지 원칙]
-1. **경력 날조 금지**: 상담자(사용자)를 'MD 출신', '콘텐츠 전략가' 등 데이터에 명시되지 않은 특정 직업군으로 단정하지 마십시오.
-2. **정책 날조 금지**: '100% 환불 보장', '3개월 성과 보장', '무료 체험' 등 원본 데이터에 없는 비즈니스 정책이나 보상안을 임의로 제안하지 마십시오.
-3. **오지랖 금지**: 상담자의 상황을 "이럴 것이다"라고 넘겨짚지 마십시오. "MD 출신 전문가로서~"와 같은 가짜 서두를 절대 사용하지 마십시오.
-4. **증거 기반 분석**: 모든 분석과 지적은 오직 대화 텍스트 내의 실제 발화 내용을 증거로 삼아야 합니다.
-5. **분석 이행**: 데이터가 부족하더라도 '분석 불가'라고 끝내지 마십시오. 말투, 대화의 주도권, 질문의 세련미 등 드러난 단서 안에서만 전문가적 견해를 내놓으십시오.
+[데이터 무결성 및 가공 정보 생성 절대 금지 원칙]
+1. **정체성 날조 금지**: 상담자(사용자)를 'MD 출신', '큐텐/바른생각 경력자' 등으로 마음대로 규정하지 마십시오. 데이터에 직업이 명시되지 않았다면 그냥 '상담자'로만 호칭하십시오.
+2. **비즈니스 정책 조작 금지**: '3개월 무료', '성과 미달 시 100% 환불', 'Keyman 제안' 등 데이터에 없는 보상 정책을 절대로 지어내지 마십시오.
+3. **가공의 수치 금지**: '전환율 300% 상승', '수익 5배 보장' 등 근거 없는 목표 수치를 스크립트에 넣지 마십시오.
+4. **오지랖 분석 차단**: 상담자의 내면 심리나 상황을 "에고가 강하다", "열등감이 있다"라고 함부로 단정하지 마십시오. 오직 대화의 기술적/전략적 측면만 분석하십시오.
+5. **무조건적 증거주의**: 모든 권장 스크립트와 피드백은 "상담자가 대화 중 실제로 말한 내용"을 바탕으로 그 표현 방식만 다듬어야 합니다.
 `;
 
 const getSystemInstruction = (persona?: UserPersona, mode: FeedbackMode = 'softened') => {
   const modeInstruction = mode === 'merciless' 
-    ? `당신은 매우 직설적이고 뼈를 때리는 수준으로 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 자비 없이 지적하되, 반드시 팩트에만 근거하십시오.`
-    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되, 성장을 독려하는 톤을 유지하십시오.`;
+    ? `당신은 매우 직설적이고 날카롭게 분석하는 비즈니스 코치입니다. 상담자의 실수를 팩트 위주로 자비 없이 지적하십시오. 없는 사실을 지어내는 무능한 조언은 즉시 파기하십시오.`
+    : `당신은 전문적이고 건설적인 비즈니스 코치입니다. 상담자의 실수를 명확히 짚어주되 성장을 독려하십시오.`;
 
   return `
-당신은 세계 최고의 세일즈 전략가이자 비즈니스 분석가입니다. 
+당신은 세계 최고의 세일즈 전략가입니다. 
 ${STRICT_GROUNDING_INSTRUCTION}
 사용자 페르소나(${persona?.name || '전문가'})의 전문성을 유지하며 모든 분석은 **한국어**로만 수행하십시오.
 
-[핵심 분석 지침]
-1. **SPIN 추출**: 대화 전문에서 상담자가 실제로 던진 SPIN 질문을 누락 없이 추출하십시오. (각 단계별 최소 4개 지향)
-2. **권장 스크립트**: 상담자가 실제로 가진 전문 영역 안에서만 말투를 세련되게 다듬어 **정확히 2개**를 제시하십시오.
-3. **분석의 질**: 상담자의 심리적 트리거 활용 능력, 시스템적 부재를 정밀하게 진단하십시오. 
-4. **사실 확인**: 답변을 내놓기 전 "내가 지금 상담자의 경력을 지어내고 있는가?"를 스스로 검증하십시오.
+[필독: 스크립트 생성 규칙]
+- 상담자의 실제 대화 내용에서 '말투'와 '구조'만 전문가답게 수정하십시오.
+- 상담자가 "나 MD야"라고 하지 않았다면, 스크립트에 절대로 "MD"라는 단어를 쓰지 마십시오.
+- 상담자가 "환불해줄게"라고 하지 않았다면, 스크립트에 "환불"이라는 단어를 절대 쓰지 마십시오.
+- 만약 데이터가 너무 부족하다면 "추가 정보 필요"라고 명시하고, 거짓으로 칸을 채우지 마십시오.
 `;
 };
 
@@ -211,7 +209,7 @@ const ANALYSIS_SCHEMA = {
   required: ["contactInfo", "summary", "consultantFeedback", "spinScore", "spinCounts", "spinQuestions", "spinScores", "spinAnalysis", "influenceAnalysis", "persuasionAudit", "charlieMorganInsight", "cialdiniInsight", "strengths", "keyMistakes", "betterApproaches", "growthPoints", "recommendedScripts"]
 };
 
-// --- [헬퍼 및 메인 실행 함수] ---
+// --- [헬퍼 함수] ---
 function getMimeType(file: File): string {
   if (file.type) return file.type;
   const name = file.name.toLowerCase();
@@ -229,15 +227,16 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+// --- [메인 실행 함수] ---
 export const analyzeSalesFile = async (file: File, persona?: UserPersona, mode: FeedbackMode = 'softened', onProgress?: (m: string) => void): Promise<AnalysisResult> => {
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const base64 = await fileToBase64(file);
     const mimeType = getMimeType(file);
     
-    onProgress?.("팩트 기반 정밀 데이터 분석 중...");
+    onProgress?.("데이터 정밀 분석 중...");
     const response = await generateContentWithRetry(ai, {
         model: MODEL_NAME_PRO,
-        contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 정밀 분석하십시오. 원본에 없는 상담자의 경력이나 사업 정책을 지어내지 마십시오." }] },
+        contents: { parts: [{ inlineData: { mimeType, data: base64 } }, { text: "세일즈 대화를 분석하십시오. 소스 데이터에 없는 상담자의 이력이나 비즈니스 정책은 절대적으로 배제하십시오." }] },
         config: { systemInstruction: getSystemInstruction(persona, mode), responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA } as any
     }, onProgress);
     return JSON.parse(extractJson(response.text || "{}"));
