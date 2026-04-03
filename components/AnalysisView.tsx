@@ -24,7 +24,7 @@ const formatScore = (score: any): number => {
     return num;
 };
 
-const stripTags = (text: string) => text.replace(/\s*\([^)]+\)$/, '').trim();
+const stripTags = (text: string = '') => text.replace(/\s*\([^)]+\)$/, '').trim();
 
 const QuestionList: React.FC<{ title: string; questions: { original: string; betterVersion: string }[]; analysis: string; color: string; label: string; mode?: FeedbackMode }> = ({ title, questions, analysis, color, label, mode }) => {
     const finalColor = color;
@@ -144,24 +144,17 @@ const QuestioningAnalysisPage: React.FC<{
     );
 };
 
-/**
- * [수정] 최종 피드백 페이지 (Page 8)
- * - 하드 모드일 때만 치명적 패착에 레드 테마 적용 (과하지 않게)
- * - 'BONE-HITTING ADVICE' 문구 제거 완료
- */
 const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]; mode?: FeedbackMode }> = ({ mistakes, approaches, mode }) => {
     const isHardMode = mode === 'merciless';
 
     return (
         <div className="flex flex-col gap-6 h-full relative">
             <div className="flex justify-between items-start">
-                {/* 타이틀: 하드 모드일 때만 텍스트 레드 포인트 */}
                 <h2 className={`text-[42px] font-black italic tracking-tighter uppercase leading-none ${isHardMode ? 'text-rose-600' : 'text-indigo-500'}`}>
                     {isHardMode ? 'MERCILESS FEEDBACK' : 'STRATEGIC FEEDBACK'}
                 </h2>
                 <div className="text-right flex flex-col items-end">
                     <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">전략 진단 리포트</span>
-                    {/* [삭제] BONE-HITTING ADVICE 배지 제거 및 일반 정보 배지로 교체 */}
                     <div className={`px-6 py-2 rounded-full border ${isHardMode ? 'border-rose-500/30 text-rose-500 bg-rose-500/5' : 'border-indigo-500/30 text-indigo-400 bg-indigo-500/5'} text-[10px] font-black uppercase tracking-widest italic`}>
                         {isHardMode ? 'CRITICAL REALITY CHECK' : 'CORE IMPROVEMENT REPORT'}
                     </div>
@@ -169,7 +162,6 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
             </div>
 
             <div className="flex flex-col gap-8 flex-1 mt-6">
-                {/* 치명적 패착: 하드 모드일 때만 연한 붉은 배경과 테두리 적용 */}
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <div className={`w-1.5 h-6 ${isHardMode ? 'bg-rose-600' : 'bg-indigo-600'}`}></div>
@@ -185,7 +177,6 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                     </div>
                 </div>
 
-                {/* 업그레이드 솔루션: 차분한 테마 유지 */}
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-1.5 h-6 bg-emerald-600"></div>
@@ -202,7 +193,6 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                 </div>
             </div>
             
-            {/* 하단 바: 하드 모드일 때만 붉은 강조 */}
             <div className={`mt-auto py-6 px-10 rounded-full border ${isHardMode ? 'bg-rose-700/80 border-rose-500/20 shadow-[0_10px_30px_rgba(225,29,72,0.2)]' : 'bg-indigo-600 border-indigo-500/20 shadow-2xl'}`}>
                 <p className="text-white font-black text-center text-[20px] tracking-tight uppercase italic leading-tight">
                     핵심 개선 과제를 즉시 시스템에 반영하십시오.
@@ -266,7 +256,6 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
           className={`${baseBg} text-white overflow-hidden shadow-2xl relative flex flex-col origin-top shrink-0 transition-all duration-700`} 
           style={{ width: '1131px', height: '800px', transform: `scale(${scale})` }}
         >
-          {/* 하드 모드 마지막 장의 워터마크 효과도 채도 조절 */}
           {isHardMode && isLastPage && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#e11d4805_0%,transparent_70%)]"></div>
@@ -380,7 +369,7 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
                     {(result?.growthPoints || []).slice(0, 2).map((p, i) => (
                         <div key={i} className="bg-[#0f172a] p-6 rounded-[25px] border border-white/5 flex items-center gap-6 shadow-xl hover:bg-slate-800 transition-colors shrink-0">
                             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20"><svg className="w-7 h-7 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" /></svg></div>
-                            <div className="flex flex-col gap-1"><h4 className="text-[18px] font-black text-white italic leading-tight">{p.title}</h4><p className="text-slate-300 text-[13px] leading-relaxed font-medium italic">{p.description}</p></div>
+                            <div className="flex flex-col gap-1"><h4 className="text-[18px] font-black text-white italic leading-tight">{p.title}</h4><p className="text-slate-300 text-[14px] leading-relaxed font-medium italic">{p.description}</p></div>
                         </div>
                     ))}
                 </div>
@@ -406,7 +395,5 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset, mod
         <StrategicFeedbackPage mistakes={result?.keyMistakes || []} approaches={result?.betterApproaches || []} mode={mode} />
       </PageWrapper>
     </div>
-  );
-};
   );
 };
