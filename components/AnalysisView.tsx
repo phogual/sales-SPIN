@@ -184,7 +184,7 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                     </div>
                     <div className="flex flex-col gap-3">
                         {(approaches || []).slice(0, 2).map((a, i) => (
-                            <div key={i} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-start gap-6 transition-all hover:bg-white/10">
+                            <div key={i} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-start gap-4 transition-all hover:bg-white/10">
                                 <span className="text-emerald-500 font-black text-2xl italic shrink-0 leading-none">{i+1}</span>
                                 <p className="text-slate-100 font-bold italic text-[18px] leading-snug">{a}</p>
                             </div>
@@ -193,11 +193,7 @@ const StrategicFeedbackPage: React.FC<{ mistakes: string[]; approaches: string[]
                 </div>
             </div>
             
-            <div className={`mt-auto py-6 px-10 rounded-full border ${isHardMode ? 'bg-rose-700/80 border-rose-500/20 shadow-[0_10px_30px_rgba(225,29,72,0.2)]' : 'bg-indigo-600 border-indigo-500/20 shadow-2xl'}`}>
-                <p className="text-white font-black text-center text-[20px] tracking-tight uppercase italic leading-tight">
-                    핵심 개선 과제를 즉시 시스템에 반영하십시오.
-                </p>
-            </div>
+            {/* [삭제] 요청하신 하단 슬로건 바 영역을 완전히 제거했습니다. */}
         </div>
     );
 };
